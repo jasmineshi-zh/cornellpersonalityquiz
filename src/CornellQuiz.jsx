@@ -517,15 +517,14 @@ export default function CornellQuiz() {
 
         {/* Animated content */}
         <div key={qKey} style={{flex:1,display:"flex",flexDirection:"column",animation:qAnim}}>
-          <div style={{padding:"18px 20px 10px",flexShrink:0}}>
+          <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+            <div style={{margin:"auto 0",padding:"18px 20px 10px",display:"flex",flexDirection:"column",gap:10}}>
             <div style={{background:"#fff",borderRadius:24,padding:"18px",border:BORDER,boxShadow:SHADOW}}>
               <p style={{fontSize:18,fontWeight:700,color:DARK,margin:0,...sans,textAlign:"center",lineHeight:1.45}}>
                 {L==="zh"?q.zh:q.en}
               </p>
             </div>
-          </div>
 
-          <div style={{padding:"0 20px",flex:1,display:"flex",flexDirection:"column",gap:10,overflowY:"auto"}}>
             {q.opts.map((o,i) => {
               const os = OPT_STYLE[i];
               const isSel = sel === i;
@@ -547,6 +546,7 @@ export default function CornellQuiz() {
                 </button>
               );
             })}
+            </div>
           </div>
 
           <div style={{padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))",flexShrink:0,display:"flex",gap:10}}>
@@ -641,9 +641,8 @@ export default function CornellQuiz() {
             <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",width:22,height:22,background:WARM,border:BORDER,borderRadius:"50%",zIndex:10}}/>
 
             {/* Card header */}
-            <div style={{background:RED,padding:"14px 18px 12px",paddingTop:22,borderBottom:BORDER,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+            <div style={{background:RED,padding:"14px 18px 12px",paddingTop:22,borderBottom:BORDER}}>
               <div style={{color:"#fff",fontWeight:900,fontSize:13,...sans}}>Cornell 🐻</div>
-              <div style={{background:"#fff",padding:"2px 10px",borderRadius:9999,border:BORDER_SM,fontSize:11,fontWeight:900,...mono}}>CLASS OF 2028</div>
             </div>
 
             {/* Name + Type */}
@@ -656,8 +655,8 @@ export default function CornellQuiz() {
 
             {/* Emoji hero */}
             <div style={{padding:"0 18px 12px"}}>
-              <div style={{background:cardBg,borderRadius:18,border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",height:150}}>
-                <span style={{fontSize:76}}>{p.emoji}</span>
+              <div style={{background:cardBg,borderRadius:18,border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",height:90}}>
+                <span style={{fontSize:52}}>{p.emoji}</span>
               </div>
             </div>
 

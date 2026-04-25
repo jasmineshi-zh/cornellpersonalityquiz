@@ -57,6 +57,8 @@ const STYLES = `
   .nbtn:active{transform:translate(6px,6px)!important;box-shadow:none!important;transition:none!important}
   .flip-inner{transform-style:preserve-3d;-webkit-transform-style:preserve-3d}
   .flip-face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .carousel-scroll{scrollbar-width:none;-ms-overflow-style:none}
+  .carousel-scroll::-webkit-scrollbar{display:none}
 `;
 
 const QS = [
@@ -263,19 +265,16 @@ function Barcode({seed, fill="#000"}) {
   let x = 0;
   const c = (seed||"abc").split("").map(ch => ch.charCodeAt(0));
   const H = 34;
-  // Guard: thin-thin-thin start
   [[1,1],[1,1],[1,2]].forEach(([bw,gw],i)=>{
     rects.push(<rect key={"s"+i} x={x} y={0} width={bw} height={H} fill={fill}/>);
     x += bw + gw;
   });
-  // Data bars: alternating widths 1–3, gaps 1–2
   for(let i=0;i<46;i++){
     const bw = ((c[i%c.length]*3+i*7)%3)+1;
     const gw = ((c[(i+1)%c.length]*2+i*5)%2)+1;
     rects.push(<rect key={i} x={x} y={0} width={bw} height={H} fill={fill}/>);
     x += bw + gw;
   }
-  // Guard: thin-thin-thin end
   [[1,1],[1,1],[1,0]].forEach(([bw,gw],i)=>{
     rects.push(<rect key={"e"+i} x={x} y={0} width={bw} height={H} fill={fill}/>);
     x += bw + gw;
@@ -304,10 +303,15 @@ export default function CornellQuiz() {
   const [navDir, setNavDir]   = useState("forward");
   const [qKey, setQKey]       = useState(0);
   const [qDir, setQDir]       = useState("forward");
+  const [carouselIdx, setCarouselIdx] = useState(0);
 
-  const frontRef   = useRef(null);
-  const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
+  const frontRef          = useRef(null);
+  const touchStartX       = useRef(null);
+  const touchStartY       = useRef(null);
+  const carouselScrollRef = useRef(null);
+  const carouselAvatarRefs = useRef([]);
+  const carouselCardRefs  = useRef([]);
+  const scrollEndTimerRef = useRef(null);
 
   const L = lang;
   const T = (zh, en) => L === "zh" ? zh : en;
@@ -336,6 +340,28 @@ export default function CornellQuiz() {
     }, 3000);
     return () => { clearInterval(iv); clearInterval(yiv); clearTimeout(to); };
   }, [step, answers]);
+
+  // Initialize carousel scroll position and transforms when entering the carousel step
+  useEffect(() => {
+    if (step !== "carousel" || !carouselScrollRef.current) return;
+    const N = AS.length, CARD_W = 300, GAP = 16;
+    const el = carouselScrollRef.current;
+    const sl = (N + carouselIdx) * (CARD_W + GAP);
+    el.scrollLeft = sl;
+    for (let i = 0; i < N * 3; i++) {
+      const dist = i * (CARD_W + GAP) - sl;
+      const norm = dist / (CARD_W + GAP);
+      const angle = norm * 4;
+      const scale = Math.max(0.82, 1 - Math.abs(norm) * 0.08);
+      if (carouselCardRefs.current[i]) {
+        carouselCardRefs.current[i].style.transform = `rotate(${angle}deg) scale(${scale})`;
+        carouselCardRefs.current[i].style.zIndex = String(Math.round(10 - Math.abs(norm) * 3));
+      }
+      if (carouselAvatarRefs.current[i]) {
+        carouselAvatarRefs.current[i].style.transform = `translateX(${dist * 0.1}px)`;
+      }
+    }
+  }, [step]);
 
   const startQuiz = () => {
     if (!name.trim()) return;
@@ -400,7 +426,6 @@ export default function CornellQuiz() {
       const canvas = await captureCard();
       const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
       const file = new File([blob], "cornell-card.png", {type:"image/png"});
-      // Web Share API with image file — iOS share sheet surfaces Instagram Stories directly
       if (navigator.share && navigator.canShare?.({files:[file]})) {
         await navigator.share({
           files:[file],
@@ -411,7 +436,6 @@ export default function CornellQuiz() {
           ),
         });
       } else {
-        // Fallback: save image + guide user into Instagram Stories manually
         const a = document.createElement("a");
         a.download = "cornell-card.png";
         a.href = canvas.toDataURL("image/png");
@@ -460,13 +484,11 @@ export default function CornellQuiz() {
       animation:pageAnim, WebkitFontSmoothing:"antialiased",
     }}>
       <style>{STYLES}</style>
-      {/* Decorative blobs */}
       <div style={{position:"absolute",top:40,left:40,width:64,height:64,background:YELLOW,borderRadius:"50%",opacity:0.55,animation:"npulse 2s ease-in-out infinite",pointerEvents:"none"}}/>
       <div style={{position:"absolute",top:130,right:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.35,animation:"npulse 2.4s ease-in-out infinite 0.4s",pointerEvents:"none"}}/>
       <div style={{position:"absolute",bottom:150,left:20,width:80,height:80,background:PINK,borderRadius:"50%",opacity:0.45,animation:"npulse 1.8s ease-in-out infinite 0.8s",pointerEvents:"none"}}/>
 
       <div style={{width:"100%",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",zIndex:1,gap:0}}>
-        {/* Bear */}
         <div style={{position:"relative",marginBottom:16}}>
           <div style={{width:100,height:100,background:YELLOW,borderRadius:"50%",border:BORDER,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <span style={{fontSize:48}}>🐻</span>
@@ -474,14 +496,12 @@ export default function CornellQuiz() {
           <div style={{position:"absolute",top:-8,right:-14,background:"#fff",padding:"3px 10px",borderRadius:9999,border:BORDER,transform:"rotate(12deg)",fontSize:12,fontWeight:900,...sans}}>Hey!</div>
         </div>
 
-        {/* Language toggle */}
         <div style={{display:"flex",border:BORDER,borderRadius:9999,overflow:"hidden",marginBottom:18,boxShadow:SHADOW,flexShrink:0,background:"#fff"}}>
           <button onClick={()=>setLang("zh")} style={{padding:"9px 24px",background:lang==="zh"?RED:"#fff",color:lang==="zh"?"#fff":DARK,border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>中文</button>
           <div style={{width:4,background:"#000"}}/>
           <button onClick={()=>setLang("en")} style={{padding:"9px 24px",background:lang==="en"?RED:"#fff",color:lang==="en"?"#fff":DARK,border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>English</button>
         </div>
 
-        {/* 161 ribbon */}
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
           <div style={{height:2,background:"rgba(255,255,255,0.35)",width:30}}/>
           <p style={{color:YELLOW,fontSize:10,letterSpacing:"0.22em",...mono,margin:0,fontWeight:900}}>CELEBRATING 161 YEARS</p>
@@ -494,7 +514,6 @@ export default function CornellQuiz() {
           {T("仅需5分钟——测完即可获得你的专属Cornell人格卡","Only takes 5 minutes — you will receive your unique Cornell ID Card")}
         </p>
 
-        {/* Name input */}
         <div style={{width:"100%",background:"#fff",borderRadius:28,padding:"22px 18px",border:BORDER,boxShadow:SHADOW,position:"relative",marginBottom:4}}>
           <div style={{position:"absolute",top:-14,left:18,background:GREEN,padding:"3px 12px",borderRadius:9999,border:BORDER,fontSize:11,fontWeight:700,...sans}}>
             {T("你的名字 Your name","Your name 你的名字")}
@@ -510,7 +529,6 @@ export default function CornellQuiz() {
         </div>
       </div>
 
-      {/* CTA */}
       <button
         className={name.trim()?"nbtn":""}
         onClick={startQuiz}
@@ -544,12 +562,11 @@ export default function CornellQuiz() {
         <div style={{position:"absolute",top:80,right:36,width:64,height:64,background:PINK,borderRadius:"50%",opacity:0.28,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:120,left:28,width:80,height:80,background:GREEN,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
 
-        {/* Header */}
         <div style={{background:"#fff",padding:"14px 20px 12px",borderBottom:BORDER,position:"relative",flexShrink:0}}>
           <LangBtn onDark={false}/>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,paddingRight:52}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:13,fontWeight:700,...sans,color:DARK}}>
+              <span style={{fontSize:13,fontWeight:700,...sans,color:DARK}}>
                 {T("题目","Q")} {qi+1} / {QS.length}
               </span>
             </div>
@@ -562,53 +579,48 @@ export default function CornellQuiz() {
           </div>
         </div>
 
-        {/* Animated content */}
         <div key={qKey} style={{flex:1,display:"flex",flexDirection:"column",animation:qAnim}}>
           <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{margin:"auto 0",padding:"18px 20px 10px",display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{background:"#fff",borderRadius:24,padding:"18px",border:BORDER,boxShadow:SHADOW}}>
-              <p style={{fontSize:18,fontWeight:700,color:DARK,margin:0,...sans,textAlign:"center",lineHeight:1.45}}>
-                {L==="zh"?q.zh:q.en}
-              </p>
-            </div>
+              <div style={{background:"#fff",borderRadius:24,padding:"18px",border:BORDER,boxShadow:SHADOW}}>
+                <p style={{fontSize:18,fontWeight:700,color:DARK,margin:0,...sans,textAlign:"center",lineHeight:1.45}}>
+                  {L==="zh"?q.zh:q.en}
+                </p>
+              </div>
 
-            {(shuffledOpts?.[qi] ?? [0,1,2,3]).map((origIdx, displayIdx) => {
-              const o = q.opts[origIdx];
-              const os = OPT_STYLE[displayIdx];
-              const isSel = sel === origIdx;
-              return (
-                <button key={origIdx} onClick={() => setSel(origIdx)} style={{
-                  textAlign:"left",padding:"12px 14px",
-                  background:os.bg,border:BORDER,borderRadius:24,
-                  boxShadow:isSel?"none":SHADOW,
-                  transform:isSel?"translate(6px,6px)":"none",
-                  display:"flex",alignItems:"center",gap:12,
-                  cursor:"pointer",transition:"all 0.12s",flexShrink:0,
-                }}>
-                  <div style={{width:44,height:44,minWidth:44,background:isSel?os.dark:"#fff",borderRadius:12,border:BORDER_SM,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isSel?24:15,fontWeight:900,color:isSel?"#fff":DARK,...mono,lineHeight:1}}>
-                    {isSel?"✔":String.fromCharCode(65+displayIdx)}
-                  </div>
-                  <div style={{flex:1,fontSize:14,fontWeight:700,color:os.fg,lineHeight:1.45,...sans}}>
-                    {L==="zh"?o.zh:o.en}
-                  </div>
-                </button>
-              );
-            })}
+              {(shuffledOpts?.[qi] ?? [0,1,2,3]).map((origIdx, displayIdx) => {
+                const o = q.opts[origIdx];
+                const os = OPT_STYLE[displayIdx];
+                const isSel = sel === origIdx;
+                return (
+                  <button key={origIdx} onClick={() => setSel(origIdx)} style={{
+                    textAlign:"left",padding:"12px 14px",
+                    background:os.bg,border:BORDER,borderRadius:24,
+                    boxShadow:isSel?"none":SHADOW,
+                    transform:isSel?"translate(6px,6px)":"none",
+                    display:"flex",alignItems:"center",gap:12,
+                    cursor:"pointer",transition:"all 0.12s",flexShrink:0,
+                  }}>
+                    <div style={{width:44,height:44,minWidth:44,background:isSel?os.dark:"#fff",borderRadius:12,border:BORDER_SM,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isSel?24:15,fontWeight:900,color:isSel?"#fff":DARK,...mono,lineHeight:1}}>
+                      {isSel?"✔":String.fromCharCode(65+displayIdx)}
+                    </div>
+                    <div style={{flex:1,fontSize:14,fontWeight:700,color:os.fg,lineHeight:1.45,...sans}}>
+                      {L==="zh"?o.zh:o.en}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div style={{padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))",flexShrink:0,display:"flex",gap:10}}>
             {qi > 0 && (
-              <button
-                className="nbtn"
-                onClick={handleBack}
-                style={{
-                  padding:"15px 16px",flexShrink:0,
-                  background:"#fff",border:BORDER,borderRadius:9999,
-                  boxShadow:SHADOW,fontSize:14,fontWeight:900,...sans,
-                  color:DARK,cursor:"pointer",whiteSpace:"nowrap",
-                }}
-              >{T("上一题 ←","← Prev")}</button>
+              <button className="nbtn" onClick={handleBack} style={{
+                padding:"15px 16px",flexShrink:0,
+                background:"#fff",border:BORDER,borderRadius:9999,
+                boxShadow:SHADOW,fontSize:14,fontWeight:900,...sans,
+                color:DARK,cursor:"pointer",whiteSpace:"nowrap",
+              }}>{T("上一题 ←","← Prev")}</button>
             )}
             <button
               className={sel!==null?"nbtn":""}
@@ -646,7 +658,6 @@ export default function CornellQuiz() {
           <div style={{position:"absolute",top:-14,right:-14,background:"#fff",width:38,height:38,borderRadius:"50%",border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,animation:"npulse 1s ease-in-out infinite"}}>✨</div>
         </div>
 
-        {/* Year counter 1865 → 2026 */}
         <div style={{background:"#fff",border:BORDER,borderRadius:20,boxShadow:SHADOW,padding:"8px 20px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:10,fontWeight:900,...mono,color:GRAY,letterSpacing:"0.08em"}}>1865 →</span>
           <span style={{fontSize:28,fontWeight:900,...sans,color:RED,lineHeight:1,minWidth:64,textAlign:"center"}}>{yearTick}</span>
@@ -672,85 +683,71 @@ export default function CornellQuiz() {
         <div style={{position:"absolute",top:40,right:36,width:80,height:80,background:YELLOW,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:120,left:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.2,pointerEvents:"none"}}/>
 
-        {/* LangBtn floated */}
         <div style={{position:"absolute",top:14,right:16,zIndex:20}}>
           <button className="nbtn" onClick={() => setLang(l=>l==="zh"?"en":"zh")} style={{background:"#fff",border:BORDER_SM,color:DARK,borderRadius:9999,padding:"4px 12px",fontSize:11,...mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:700,boxShadow:SHADOW_SM}}>
             {L==="zh"?"EN":"中文"}
           </button>
         </div>
 
-        {/* Scrollable area */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 20px 8px"}}>
           <div style={{margin:"auto 0",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
 
-          {/* Lanyard */}
-          <div style={{width:44,height:80,background:"linear-gradient(to bottom,#B31B1B,#7a1010)",border:BORDER,borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"4px 4px 0 0 #000",flexShrink:0}}>
-            <span style={{color:"rgba(255,255,255,0.6)",fontSize:7,fontWeight:700,...mono,letterSpacing:"0.08em",writingMode:"vertical-rl"}}>MADE BY CSSA</span>
-          </div>
-          <div style={{width:28,height:14,background:"#fff",border:BORDER,borderTop:"none",borderRadius:"0 0 9999px 9999px",flexShrink:0}}/>
-
-          {/* ID Card — single face, Figma layout */}
-          <div ref={frontRef} style={{width:"100%",maxWidth:360,flexShrink:0,marginBottom:8,borderRadius:24,border:BORDER_LG,boxShadow:SHADOW_LG,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-
-            {/* ── RED TOP SECTION ── */}
-            <div style={{background:RED,padding:"14px 16px 16px",flexShrink:0,borderBottom:BORDER}}>
-              {/* Header row */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>CORNELL PERSONALITY ID</span>
-                <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>{L==="zh"?p.zt:p.et}</span>
-              </div>
-              {/* Name */}
-              <div style={{marginBottom:10}}>
-                <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Name</div>
-                <div style={{color:WARM,fontSize:28,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.01em",wordBreak:"break-word"}}>{name||"—"}</div>
-              </div>
-              {/* Archetype */}
-              <div>
-                <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Archetype</div>
-                <div style={{color:YELLOW,fontSize:34,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.02em"}}>{L==="zh"?p.zn:p.en}</div>
-              </div>
+            <div style={{width:44,height:80,background:"linear-gradient(to bottom,#B31B1B,#7a1010)",border:BORDER,borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"4px 4px 0 0 #000",flexShrink:0}}>
+              <span style={{color:"rgba(255,255,255,0.6)",fontSize:7,fontWeight:700,...mono,letterSpacing:"0.08em",writingMode:"vertical-rl"}}>MADE BY CSSA</span>
             </div>
+            <div style={{width:28,height:14,background:"#fff",border:BORDER,borderTop:"none",borderRadius:"0 0 9999px 9999px",flexShrink:0}}/>
 
-            {/* ── CREAM BOTTOM SECTION ── */}
-            <div style={{background:WARM,display:"flex",gap:12,padding:"14px 14px 16px",minHeight:0}}>
-
-              {/* Left column: content fields */}
-              <div style={{flex:1,display:"flex",flexDirection:"column",gap:11,minWidth:0}}>
-                <div>
-                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Description</div>
-                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zd:p.ed}</p>
+            <div ref={frontRef} style={{width:"100%",maxWidth:360,flexShrink:0,marginBottom:8,borderRadius:24,border:BORDER_LG,boxShadow:SHADOW_LG,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+              <div style={{background:RED,padding:"14px 16px 16px",flexShrink:0,borderBottom:BORDER}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>CORNELL PERSONALITY ID</span>
+                  <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>{L==="zh"?p.zt:p.et}</span>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Name</div>
+                  <div style={{color:WARM,fontSize:28,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.01em",wordBreak:"break-word"}}>{name||"—"}</div>
                 </div>
                 <div>
-                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Superpower</div>
-                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zpw:p.epw}</p>
-                </div>
-                <div>
-                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Blind Spot</div>
-                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zbl:p.ebl}</p>
-                </div>
-                <div>
-                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("兼容人格","Compatible With")}</div>
-                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?sec.zn:sec.en} · {sim}%</p>
-                </div>
-                <div>
-                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("灵魂地标","Spirit Place")}</div>
-                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zsp:p.esp}</p>
+                  <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Archetype</div>
+                  <div style={{color:YELLOW,fontSize:34,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.02em"}}>{L==="zh"?p.zn:p.en}</div>
                 </div>
               </div>
 
-              {/* Right column: avatar + tagline */}
-              <div style={{width:126,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-                <img src={ARCHETYPE_IMG[p.id]} alt={p.en} style={{width:"100%",height:190,objectFit:"contain",objectPosition:"bottom",display:"block"}}/>
-                <p style={{fontSize:10,fontStyle:"italic",fontWeight:700,color:DARK,textAlign:"center",lineHeight:1.5,...sans,margin:0}}>
-                  &ldquo;{L==="zh"?p.ztl:p.etl}&rdquo;
-                </p>
+              <div style={{background:WARM,display:"flex",gap:12,padding:"14px 14px 16px",minHeight:0}}>
+                <div style={{flex:1,display:"flex",flexDirection:"column",gap:11,minWidth:0}}>
+                  <div>
+                    <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Description</div>
+                    <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zd:p.ed}</p>
+                  </div>
+                  <div>
+                    <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Superpower</div>
+                    <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zpw:p.epw}</p>
+                  </div>
+                  <div>
+                    <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Blind Spot</div>
+                    <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zbl:p.ebl}</p>
+                  </div>
+                  <div>
+                    <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("兼容人格","Compatible With")}</div>
+                    <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?sec.zn:sec.en} · {sim}%</p>
+                  </div>
+                  <div>
+                    <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("灵魂地标","Spirit Place")}</div>
+                    <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zsp:p.esp}</p>
+                  </div>
+                </div>
+
+                <div style={{width:126,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
+                  <img src={ARCHETYPE_IMG[p.id]} alt={p.en} style={{width:"100%",height:190,objectFit:"contain",objectPosition:"bottom",display:"block"}}/>
+                  <p style={{fontSize:10,fontStyle:"italic",fontWeight:700,color:DARK,textAlign:"center",lineHeight:1.5,...sans,margin:0}}>
+                    &ldquo;{L==="zh"?p.ztl:p.etl}&rdquo;
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-          </div>{/* end centering wrapper */}
         </div>
 
-        {/* Action buttons */}
         <div style={{borderTop:BORDER,background:"#fff",padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1.3fr 1fr",gap:8}}>
             <button className="nbtn" onClick={restart} style={{padding:"13px 0",background:"#fff",border:BORDER,borderRadius:9999,fontSize:13,...sans,fontWeight:700,color:DARK,cursor:"pointer",boxShadow:SHADOW}}>
@@ -762,6 +759,190 @@ export default function CornellQuiz() {
             <button className="nbtn" onClick={shareToInstagram} disabled={sharing} style={{padding:"13px 0",background:sharing?"#f0f0f0":YELLOW,border:BORDER,borderRadius:9999,fontSize:13,...sans,fontWeight:700,color:DARK,cursor:"pointer",boxShadow:SHADOW,transition:"background 0.2s"}}>
               {sharing?T("分享中…","Sharing…"):T("分享","Share")}
             </button>
+          </div>
+          <button className="nbtn" onClick={() => {
+            const idx = AS.findIndex(a => a.id === p.id);
+            setCarouselIdx(idx >= 0 ? idx : 0);
+            setNavDir("forward");
+            setStep("carousel");
+          }} style={{width:"100%",marginTop:8,padding:"12px 0",background:WARM,border:BORDER,borderRadius:9999,fontSize:13,...sans,fontWeight:700,color:DARK,cursor:"pointer",boxShadow:SHADOW}}>
+            {T("查看全部8种人格 →","View All 8 Archetypes →")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── CAROUSEL ────────────────────────────────────────────────────────────
+  if (step === "carousel") {
+    const N = AS.length;
+    const DISPLAY = [...AS, ...AS, ...AS]; // triple-clone for seamless infinite loop
+    const CARD_W = 300, GAP = 16;
+
+    const handleCarouselScroll = () => {
+      const el = carouselScrollRef.current;
+      if (!el) return;
+      const sl = el.scrollLeft;
+
+      // Tilt + parallax — pure DOM writes, zero React re-renders per frame
+      for (let i = 0; i < DISPLAY.length; i++) {
+        // dist = 0 when card i is perfectly centered
+        const dist = i * (CARD_W + GAP) - sl;
+        const norm = dist / (CARD_W + GAP);
+        const angle = norm * 4;                               // ±4° per card-width
+        const scale = Math.max(0.82, 1 - Math.abs(norm) * 0.08); // 1.0 → 0.82 at edges
+        if (carouselCardRefs.current[i]) {
+          carouselCardRefs.current[i].style.transform = `rotate(${angle}deg) scale(${scale})`;
+          carouselCardRefs.current[i].style.zIndex = String(Math.round(10 - Math.abs(norm) * 3));
+        }
+        if (carouselAvatarRefs.current[i]) {
+          carouselAvatarRefs.current[i].style.transform = `translateX(${dist * 0.1}px)`;
+        }
+      }
+
+      // Update active dot indicator
+      const displayActive = Math.max(0, Math.min(DISPLAY.length - 1, Math.round(sl / (CARD_W + GAP))));
+      setCarouselIdx(displayActive % N);
+
+      // Debounced infinite-loop teleport — fires after scroll momentum stops
+      clearTimeout(scrollEndTimerRef.current);
+      scrollEndTimerRef.current = setTimeout(() => {
+        const cur = carouselScrollRef.current;
+        if (!cur) return;
+        const active = Math.round(cur.scrollLeft / (CARD_W + GAP));
+        if (active < N) {
+          // In first clone set → silently jump to identical position in middle set
+          cur.scrollLeft += N * (CARD_W + GAP);
+        } else if (active >= 2 * N) {
+          // In third clone set → silently jump to identical position in middle set
+          cur.scrollLeft -= N * (CARD_W + GAP);
+        }
+      }, 150);
+    };
+
+    // Always target the middle set so dot taps work even near the edges
+    const scrollToCard = idx =>
+      carouselScrollRef.current?.scrollTo({ left: (N + idx) * (CARD_W + GAP), behavior: "smooth" });
+
+    return (
+      <div style={{minHeight:"100dvh",background:WARM,display:"flex",flexDirection:"column",WebkitFontSmoothing:"antialiased",animation:pageAnim,position:"relative",overflow:"hidden"}}>
+        <style>{STYLES}</style>
+        <div style={{position:"absolute",top:40,right:36,width:80,height:80,background:YELLOW,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:140,left:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.2,pointerEvents:"none"}}/>
+
+        {/* Header */}
+        <div style={{background:RED,padding:"14px 20px",borderBottom:BORDER,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <button className="nbtn" onClick={() => { setNavDir("back"); setStep("result"); }}
+            style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.5)",color:"#fff",borderRadius:9999,padding:"6px 14px",fontSize:12,fontWeight:700,...sans,cursor:"pointer"}}>
+            {T("← 返回","← Back")}
+          </button>
+          <span style={{color:"#fff",fontSize:14,fontWeight:900,...sans,letterSpacing:"0.02em"}}>
+            {T("全部人格","All Archetypes")}
+          </span>
+          <span style={{color:YELLOW,fontSize:13,fontWeight:700,...mono}}>
+            {carouselIdx + 1} / {N}
+          </span>
+        </div>
+
+        {/* Infinite horizontal scroll — 3×N cards, starts in middle set */}
+        <div
+          className="carousel-scroll"
+          ref={carouselScrollRef}
+          onScroll={handleCarouselScroll}
+          style={{
+            flex:1,
+            display:"flex",
+            flexDirection:"row",
+            overflowX:"auto",
+            overflowY:"visible",
+            gap:GAP,
+            padding:"36px 0 28px",
+            scrollSnapType:"x mandatory",
+            WebkitOverflowScrolling:"touch",
+            alignItems:"center",
+          }}
+        >
+          {/* Left spacer — centers card 0 on load */}
+          <div style={{flexShrink:0,minWidth:`calc((100vw - ${CARD_W}px) / 2)`}}/>
+
+          {DISPLAY.map((aCard, i) => {
+            const compatWith = AS.find(x => x.en === aCard.eco) || AS[0];
+            return (
+              <div
+                key={i}
+                ref={el => { carouselCardRefs.current[i] = el; }}
+                style={{flexShrink:0,width:CARD_W,scrollSnapAlign:"center",position:"relative"}}
+              >
+                <div style={{borderRadius:24,border:BORDER_LG,boxShadow:SHADOW_LG,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+
+                  {/* RED TOP */}
+                  <div style={{background:RED,padding:"14px 16px 16px",flexShrink:0,borderBottom:BORDER}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                      <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>CORNELL PERSONALITY ID</span>
+                      <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>{L==="zh"?aCard.zt:aCard.et}</span>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                      <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Archetype</div>
+                      <div style={{color:YELLOW,fontSize:26,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.01em"}}>{L==="zh"?aCard.zn:aCard.en}</div>
+                    </div>
+                    <div>
+                      <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Tagline</div>
+                      <div style={{color:WARM,fontSize:12,fontWeight:700,...sans,fontStyle:"italic",lineHeight:1.4}}>&ldquo;{L==="zh"?aCard.ztl:aCard.etl}&rdquo;</div>
+                    </div>
+                  </div>
+
+                  {/* CREAM BOTTOM */}
+                  <div style={{background:WARM,display:"flex",gap:10,padding:"14px 12px 16px"}}>
+                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:10,minWidth:0}}>
+                      <div>
+                        <div style={{color:RED,fontSize:9,fontWeight:700,fontStyle:"italic",...mono,marginBottom:2,letterSpacing:"0.04em"}}>Description</div>
+                        <p style={{fontSize:9,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?aCard.zd:aCard.ed}</p>
+                      </div>
+                      <div>
+                        <div style={{color:RED,fontSize:9,fontWeight:700,fontStyle:"italic",...mono,marginBottom:2,letterSpacing:"0.04em"}}>Superpower</div>
+                        <p style={{fontSize:9,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?aCard.zpw:aCard.epw}</p>
+                      </div>
+                      <div>
+                        <div style={{color:RED,fontSize:9,fontWeight:700,fontStyle:"italic",...mono,marginBottom:2,letterSpacing:"0.04em"}}>Blind Spot</div>
+                        <p style={{fontSize:9,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?aCard.zbl:aCard.ebl}</p>
+                      </div>
+                      <div>
+                        <div style={{color:RED,fontSize:9,fontWeight:700,fontStyle:"italic",...mono,marginBottom:2,letterSpacing:"0.04em"}}>{T("兼容人格","Compatible With")}</div>
+                        <p style={{fontSize:9,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?compatWith.zn:compatWith.en}</p>
+                      </div>
+                      <div>
+                        <div style={{color:RED,fontSize:9,fontWeight:700,fontStyle:"italic",...mono,marginBottom:2,letterSpacing:"0.04em"}}>{T("灵魂地标","Spirit Place")}</div>
+                        <p style={{fontSize:9,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?aCard.zsp:aCard.esp}</p>
+                      </div>
+                    </div>
+                    {/* Avatar with parallax translateX applied via ref */}
+                    <div style={{width:110,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                      <img
+                        ref={el => { carouselAvatarRefs.current[i] = el; }}
+                        src={ARCHETYPE_IMG[aCard.id]}
+                        alt={aCard.en}
+                        style={{width:"100%",height:170,objectFit:"contain",objectPosition:"bottom",display:"block"}}
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Right spacer — centers last card */}
+          <div style={{flexShrink:0,minWidth:`calc((100vw - ${CARD_W}px) / 2)`}}/>
+        </div>
+
+        {/* Dot indicators — 8 dots mapped to real archetypes */}
+        <div style={{borderTop:BORDER,background:"#fff",padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))"}}>
+          <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center"}}>
+            {AS.map((_, i) => (
+              <div key={i} onClick={() => scrollToCard(i)}
+                style={{width:i===carouselIdx?20:8,height:8,borderRadius:9999,background:i===carouselIdx?RED:"#ccc",border:"2px solid #000",cursor:"pointer",transition:"all 0.2s"}}
+              />
+            ))}
           </div>
         </div>
       </div>

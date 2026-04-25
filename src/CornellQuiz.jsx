@@ -33,6 +33,17 @@ const ARCHETYPE_BG = {
   ithaca: YELLOW, sage: PINK,
 };
 
+const ARCHETYPE_IMG = {
+  mcgraw:  "/archetypes/McGraw.png",
+  olin:    "/archetypes/Olin.png",
+  libe:    "/archetypes/LibeCafeSocial.png",
+  slope:   "/archetypes/LibeSlopePhilo.png",
+  beebe:   "/archetypes/BeebeLakeRunner.png",
+  willard: "/archetypes/WillardStraight.png",
+  ithaca:  "/archetypes/IthacaFall.png",
+  sage:    "/archetypes/SageCoffee.png",
+};
+
 const STYLES = `
   *{-webkit-tap-highlight-color:transparent;touch-action:manipulation;box-sizing:border-box}
   @keyframes pageRight{from{transform:translateX(28px);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -44,6 +55,8 @@ const STYLES = `
   @keyframes npulse{0%,100%{opacity:0.45}50%{opacity:0.85}}
   @keyframes spin{to{transform:rotate(360deg)}}
   .nbtn:active{transform:translate(6px,6px)!important;box-shadow:none!important;transition:none!important}
+  .flip-inner{transform-style:preserve-3d;-webkit-transform-style:preserve-3d}
+  .flip-face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
 `;
 
 const QS = [
@@ -245,22 +258,34 @@ function matchArchetype(scores) {
   return {primary:ranked[0], secondary:ranked[1], sim:Math.round((1-ranked[1].dist/maxD)*100)};
 }
 
-function Barcode({seed}) {
-  const bars = [];
+function Barcode({seed, fill="#000"}) {
+  const rects = [];
   let x = 0;
   const c = (seed||"abc").split("").map(ch => ch.charCodeAt(0));
-  for(let i=0;i<42;i++) {
-    const w = (c[i%c.length]*3+i*7)%3+1;
-    const black = (c[i%c.length]+i*13)%4 !== 0;
-    if(black) bars.push(<rect key={i} x={x} y={0} width={w} height={20} fill="#000"/>);
-    x += w+1;
+  const H = 34;
+  // Guard: thin-thin-thin start
+  [[1,1],[1,1],[1,2]].forEach(([bw,gw],i)=>{
+    rects.push(<rect key={"s"+i} x={x} y={0} width={bw} height={H} fill={fill}/>);
+    x += bw + gw;
+  });
+  // Data bars: alternating widths 1–3, gaps 1–2
+  for(let i=0;i<46;i++){
+    const bw = ((c[i%c.length]*3+i*7)%3)+1;
+    const gw = ((c[(i+1)%c.length]*2+i*5)%2)+1;
+    rects.push(<rect key={i} x={x} y={0} width={bw} height={H} fill={fill}/>);
+    x += bw + gw;
   }
-  return <svg width={x} height={20} style={{display:"block"}}>{bars}</svg>;
+  // Guard: thin-thin-thin end
+  [[1,1],[1,1],[1,0]].forEach(([bw,gw],i)=>{
+    rects.push(<rect key={"e"+i} x={x} y={0} width={bw} height={H} fill={fill}/>);
+    x += bw + gw;
+  });
+  return <svg width={x} height={H} style={{display:"block"}}>{rects}</svg>;
 }
 
 const LOADING_MSGS = {
-  zh:["分析你的Cornell灵魂中…","检索Olin签到记录…","测量你和Slope的距离…","比对Arts Quad情感指数…"],
-  en:["Analyzing your Cornell spirit","Checking Olin sign-in logs…","Measuring your Slope energy…","Cross-referencing Arts Quad vibes…"],
+  zh:["分析你的Cornell灵魂中…","检索161年校友档案…","测量你和Slope的距离…","比对Arts Quad情感指数…"],
+  en:["Analyzing your Cornell spirit","Cross-checking 161 years of alumni…","Measuring your Slope energy…","Cross-referencing Arts Quad vibes…"],
 };
 
 export default function CornellQuiz() {
@@ -272,13 +297,15 @@ export default function CornellQuiz() {
   const [sel, setSel]         = useState(null);
   const [result, setResult]   = useState(null);
   const [lmsg, setLmsg]       = useState(0);
+  const [yearTick, setYearTick] = useState(1865);
+  const [shuffledOpts, setShuffledOpts] = useState(null);
   const [saving, setSaving]   = useState(false);
   const [sharing, setSharing] = useState(false);
   const [navDir, setNavDir]   = useState("forward");
   const [qKey, setQKey]       = useState(0);
   const [qDir, setQDir]       = useState("forward");
 
-  const cardRef    = useRef(null);
+  const frontRef   = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
 
@@ -295,17 +322,32 @@ export default function CornellQuiz() {
     if (step !== "loading") return;
     let i = 0;
     const iv = setInterval(() => { i=(i+1)%4; setLmsg(i); }, 750);
+    let y = 1865;
+    const yiv = setInterval(() => {
+      y += 1;
+      if (y >= 2026) { y = 2026; clearInterval(yiv); }
+      setYearTick(y);
+    }, 15);
     const to = setTimeout(() => {
-      clearInterval(iv);
+      clearInterval(iv); clearInterval(yiv);
       setResult(matchArchetype(calcScores(answers)));
       setNavDir("forward");
       setStep("result");
     }, 3000);
-    return () => { clearInterval(iv); clearTimeout(to); };
+    return () => { clearInterval(iv); clearInterval(yiv); clearTimeout(to); };
   }, [step, answers]);
 
   const startQuiz = () => {
     if (!name.trim()) return;
+    const shuffled = QS.map(q => {
+      const idx = q.opts.map((_,i) => i);
+      for (let i = idx.length-1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [idx[i],idx[j]] = [idx[j],idx[i]];
+      }
+      return idx;
+    });
+    setShuffledOpts(shuffled);
     setNavDir("forward"); setStep("quiz");
   };
 
@@ -330,15 +372,16 @@ export default function CornellQuiz() {
 
   const restart = () => {
     setQi(0); setAnswers([]); setSel(null); setResult(null); setName("");
+    setShuffledOpts(null);
     setNavDir("back"); setStep("cover");
   };
 
-  const captureCard = () => html2canvas(cardRef.current, {
+  const captureCard = () => html2canvas(frontRef.current, {
     scale:3, backgroundColor:"#fff", useCORS:true, logging:false,
   });
 
   const saveCard = async () => {
-    if (saving || !cardRef.current) return;
+    if (saving) return;
     setSaving(true);
     try {
       const canvas = await captureCard();
@@ -351,7 +394,7 @@ export default function CornellQuiz() {
   };
 
   const shareToInstagram = async () => {
-    if (sharing || !cardRef.current) return;
+    if (sharing) return;
     setSharing(true);
     try {
       const canvas = await captureCard();
@@ -432,14 +475,18 @@ export default function CornellQuiz() {
         </div>
 
         {/* Language toggle */}
-        <div style={{display:"flex",border:BORDER,borderRadius:9999,overflow:"hidden",marginBottom:18,boxShadow:SHADOW,flexShrink:0,background:"rgba(0,0,0,0.3)"}}>
-          <button onClick={()=>setLang("zh")} style={{padding:"9px 24px",background:lang==="zh"?"#fff":"transparent",color:lang==="zh"?DARK:"rgba(255,255,255,0.85)",border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>中文</button>
-          <div style={{width:4,background:"transparent"}}/>
-          <button onClick={()=>setLang("en")} style={{padding:"9px 24px",background:lang==="en"?"#fff":"transparent",color:lang==="en"?DARK:"rgba(255,255,255,0.85)",border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>English</button>
+        <div style={{display:"flex",border:BORDER,borderRadius:9999,overflow:"hidden",marginBottom:18,boxShadow:SHADOW,flexShrink:0,background:"#fff"}}>
+          <button onClick={()=>setLang("zh")} style={{padding:"9px 24px",background:lang==="zh"?RED:"#fff",color:lang==="zh"?"#fff":DARK,border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>中文</button>
+          <div style={{width:4,background:"#000"}}/>
+          <button onClick={()=>setLang("en")} style={{padding:"9px 24px",background:lang==="en"?RED:"#fff",color:lang==="en"?"#fff":DARK,border:"none",fontWeight:900,fontSize:14,...sans,cursor:"pointer",transition:"background 0.15s"}}>English</button>
         </div>
 
-        {/* Title */}
-        <p style={{color:"rgba(255,255,255,0.45)",fontSize:9,letterSpacing:"0.22em",...mono,margin:"0 0 8px"}}>CORNELL UNIVERSITY</p>
+        {/* 161 ribbon */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          <div style={{height:2,background:"rgba(255,255,255,0.35)",width:30}}/>
+          <p style={{color:YELLOW,fontSize:10,letterSpacing:"0.22em",...mono,margin:0,fontWeight:900}}>CELEBRATING 161 YEARS</p>
+          <div style={{height:2,background:"rgba(255,255,255,0.35)",width:30}}/>
+        </div>
         <h1 style={{color:YELLOW,fontSize:30,fontWeight:900,margin:"0 0 10px",lineHeight:1.15,...sans,textAlign:"center"}}>
           {T("测测你的Cornell人格","The Cornell Personality Test")}
         </h1>
@@ -480,7 +527,7 @@ export default function CornellQuiz() {
         }}
       >{T("Let's go! 开始 →","Let's go! 开始 →")}</button>
 
-      <div style={{fontSize:9,color:"rgba(255,255,255,0.25)",...mono,letterSpacing:"0.1em",marginTop:14,zIndex:1}}>MADE BY CORNELL CSSA</div>
+      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",...mono,letterSpacing:"0.1em",marginTop:14,zIndex:1,fontWeight:700}}>MADE BY CORNELL CSSA · 1865—2026</div>
     </div>
   );
 
@@ -525,11 +572,12 @@ export default function CornellQuiz() {
               </p>
             </div>
 
-            {q.opts.map((o,i) => {
-              const os = OPT_STYLE[i];
-              const isSel = sel === i;
+            {(shuffledOpts?.[qi] ?? [0,1,2,3]).map((origIdx, displayIdx) => {
+              const o = q.opts[origIdx];
+              const os = OPT_STYLE[displayIdx];
+              const isSel = sel === origIdx;
               return (
-                <button key={i} onClick={() => setSel(i)} style={{
+                <button key={origIdx} onClick={() => setSel(origIdx)} style={{
                   textAlign:"left",padding:"12px 14px",
                   background:os.bg,border:BORDER,borderRadius:24,
                   boxShadow:isSel?"none":SHADOW,
@@ -538,7 +586,7 @@ export default function CornellQuiz() {
                   cursor:"pointer",transition:"all 0.12s",flexShrink:0,
                 }}>
                   <div style={{width:44,height:44,minWidth:44,background:isSel?os.dark:"#fff",borderRadius:12,border:BORDER_SM,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isSel?24:15,fontWeight:900,color:isSel?"#fff":DARK,...mono,lineHeight:1}}>
-                    {isSel?"✔":String.fromCharCode(65+i)}
+                    {isSel?"✔":String.fromCharCode(65+displayIdx)}
                   </div>
                   <div style={{flex:1,fontSize:14,fontWeight:700,color:os.fg,lineHeight:1.45,...sans}}>
                     {L==="zh"?o.zh:o.en}
@@ -591,11 +639,18 @@ export default function CornellQuiz() {
       <div style={{position:"absolute",top:"45%",left:28,width:64,height:64,background:PINK,borderRadius:"50%",opacity:0.55,animation:"npulse 1.3s ease-in-out infinite 0.3s",pointerEvents:"none"}}/>
 
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-        <div style={{position:"relative",marginBottom:28}}>
+        <div style={{position:"relative",marginBottom:22}}>
           <div style={{width:136,height:136,background:YELLOW,borderRadius:"50%",border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",animation:"nbounce 0.9s ease-in-out infinite"}}>
             <span style={{fontSize:68}}>🐻</span>
           </div>
           <div style={{position:"absolute",top:-14,right:-14,background:"#fff",width:38,height:38,borderRadius:"50%",border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,animation:"npulse 1s ease-in-out infinite"}}>✨</div>
+        </div>
+
+        {/* Year counter 1865 → 2026 */}
+        <div style={{background:"#fff",border:BORDER,borderRadius:20,boxShadow:SHADOW,padding:"8px 20px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:10,fontWeight:900,...mono,color:GRAY,letterSpacing:"0.08em"}}>1865 →</span>
+          <span style={{fontSize:28,fontWeight:900,...sans,color:RED,lineHeight:1,minWidth:64,textAlign:"center"}}>{yearTick}</span>
+          <span style={{fontSize:10,fontWeight:900,...mono,color:GRAY,letterSpacing:"0.08em"}}>← 2026</span>
         </div>
 
         <div style={{background:"#fff",padding:"12px 28px",borderRadius:9999,border:BORDER,boxShadow:SHADOW,marginBottom:10}}>
@@ -611,7 +666,6 @@ export default function CornellQuiz() {
   // ── RESULT ──────────────────────────────────────────────────────────────
   if (step === "result" && result) {
     const {primary:p, secondary:sec, sim} = result;
-    const cardBg = ARCHETYPE_BG[p.id] || YELLOW;
     return (
       <div style={{minHeight:"100dvh",background:WARM,display:"flex",flexDirection:"column",WebkitFontSmoothing:"antialiased",animation:pageAnim,position:"relative",overflow:"hidden"}}>
         <style>{STYLES}</style>
@@ -626,90 +680,74 @@ export default function CornellQuiz() {
         </div>
 
         {/* Scrollable area */}
-        <div style={{flex:1,overflowY:"auto",padding:"16px 20px 0",display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 20px 8px"}}>
+          <div style={{margin:"auto 0",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
 
           {/* Lanyard */}
           <div style={{width:44,height:80,background:"linear-gradient(to bottom,#B31B1B,#7a1010)",border:BORDER,borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"4px 4px 0 0 #000",flexShrink:0}}>
-            <span style={{color:"rgba(255,255,255,0.6)",fontSize:7,fontWeight:700,...mono,letterSpacing:"0.08em",writingMode:"vertical-rl"}}>CORNELL</span>
+            <span style={{color:"rgba(255,255,255,0.6)",fontSize:7,fontWeight:700,...mono,letterSpacing:"0.08em",writingMode:"vertical-rl"}}>MADE BY CSSA</span>
           </div>
           <div style={{width:28,height:14,background:"#fff",border:BORDER,borderTop:"none",borderRadius:"0 0 9999px 9999px",flexShrink:0}}/>
 
-          {/* ID Card — cardRef wraps only the card for clean screenshot */}
-          <div ref={cardRef} style={{width:"100%",maxWidth:360,background:"#fff",borderRadius:28,border:BORDER_LG,boxShadow:SHADOW_LG,overflow:"hidden",position:"relative",flexShrink:0,marginBottom:8}}>
+          {/* ID Card — single face, Figma layout */}
+          <div ref={frontRef} style={{width:"100%",maxWidth:360,flexShrink:0,marginBottom:8,borderRadius:24,border:BORDER_LG,boxShadow:SHADOW_LG,overflow:"hidden",display:"flex",flexDirection:"column"}}>
 
-            {/* Hole punch at top */}
-            <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",width:22,height:22,background:WARM,border:BORDER,borderRadius:"50%",zIndex:10}}/>
-
-            {/* Card header */}
-            <div style={{background:RED,padding:"14px 18px 12px",paddingTop:22,borderBottom:BORDER}}>
-              <div style={{color:"#fff",fontWeight:900,fontSize:13,...sans}}>Cornell 🐻</div>
-            </div>
-
-            {/* Name + Type */}
-            <div style={{padding:"14px 18px 10px"}}>
-              <div style={{fontSize:8,fontWeight:900,color:GRAY,letterSpacing:"0.12em",...mono,marginBottom:2}}>NAME:</div>
-              <h1 style={{fontSize:26,fontWeight:900,color:DARK,margin:"0 0 10px",lineHeight:1.1,...sans}}>{name||"—"}</h1>
-              <div style={{fontSize:8,fontWeight:900,color:GRAY,letterSpacing:"0.12em",...mono,marginBottom:2}}>TYPE:</div>
-              <div style={{fontSize:15,fontWeight:900,...sans,color:DARK}}>{p.emoji} {L==="zh"?p.zn:p.en}</div>
-            </div>
-
-            {/* Emoji hero */}
-            <div style={{padding:"0 18px 12px"}}>
-              <div style={{background:cardBg,borderRadius:18,border:BORDER,display:"flex",alignItems:"center",justifyContent:"center",height:90}}>
-                <span style={{fontSize:52}}>{p.emoji}</span>
+            {/* ── RED TOP SECTION ── */}
+            <div style={{background:RED,padding:"14px 16px 16px",flexShrink:0,borderBottom:BORDER}}>
+              {/* Header row */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>CORNELL PERSONALITY ID</span>
+                <span style={{color:WARM,fontSize:9,fontWeight:700,...mono,letterSpacing:"0.1em"}}>{L==="zh"?p.zt:p.et}</span>
+              </div>
+              {/* Name */}
+              <div style={{marginBottom:10}}>
+                <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Name</div>
+                <div style={{color:WARM,fontSize:28,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.01em",wordBreak:"break-word"}}>{name||"—"}</div>
+              </div>
+              {/* Archetype */}
+              <div>
+                <div style={{color:"#000",fontSize:11,fontWeight:900,...sans,fontStyle:"italic",marginBottom:3}}>Archetype</div>
+                <div style={{color:YELLOW,fontSize:34,fontWeight:900,...sans,lineHeight:1,letterSpacing:"-0.02em"}}>{L==="zh"?p.zn:p.en}</div>
               </div>
             </div>
 
-            {/* Tagline */}
-            <div style={{padding:"0 18px 12px",textAlign:"center"}}>
-              <p style={{fontSize:12,fontStyle:"italic",color:GRAY,...sans,margin:0,lineHeight:1.5}}>
-                "{L==="zh"?p.ztl:p.etl}"
-              </p>
-            </div>
+            {/* ── CREAM BOTTOM SECTION ── */}
+            <div style={{background:WARM,display:"flex",gap:12,padding:"14px 14px 16px",minHeight:0}}>
 
-            {/* Section cards */}
-            <div style={{padding:"0 14px",display:"flex",flexDirection:"column",gap:8}}>
-              <div style={{background:"#f5f5f5",borderRadius:14,border:BORDER_SM,padding:"10px 12px"}}>
-                <div style={{fontSize:8,fontWeight:900,color:GRAY,letterSpacing:"0.1em",...mono,marginBottom:4}}>DESCRIPTION:</div>
-                <p style={{fontSize:12,color:DARK,lineHeight:1.6,margin:0,...sans}}>{L==="zh"?p.zd:p.ed}</p>
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <div style={{background:YELLOW,borderRadius:14,border:BORDER_SM,padding:"10px 12px"}}>
-                  <div style={{fontSize:8,fontWeight:900,letterSpacing:"0.1em",...mono,marginBottom:4}}>SUPERPOWER:</div>
-                  <p style={{fontSize:11,lineHeight:1.4,margin:0,fontWeight:700,...sans}}>{L==="zh"?p.zpw:p.epw}</p>
+              {/* Left column: content fields */}
+              <div style={{flex:1,display:"flex",flexDirection:"column",gap:11,minWidth:0}}>
+                <div>
+                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Description</div>
+                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zd:p.ed}</p>
                 </div>
-                <div style={{background:PINK,borderRadius:14,border:BORDER_SM,padding:"10px 12px"}}>
-                  <div style={{fontSize:8,fontWeight:900,color:"#fff",letterSpacing:"0.1em",...mono,marginBottom:4}}>BLIND SPOT:</div>
-                  <p style={{fontSize:11,lineHeight:1.4,margin:0,color:"#fff",fontWeight:700,...sans}}>{L==="zh"?p.zbl:p.ebl}</p>
+                <div>
+                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Superpower</div>
+                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zpw:p.epw}</p>
+                </div>
+                <div>
+                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>Blind Spot</div>
+                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zbl:p.ebl}</p>
+                </div>
+                <div>
+                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("兼容人格","Compatible With")}</div>
+                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?sec.zn:sec.en} · {sim}%</p>
+                </div>
+                <div>
+                  <div style={{color:RED,fontSize:10,fontWeight:700,fontStyle:"italic",...mono,marginBottom:3,letterSpacing:"0.04em"}}>{T("灵魂地标","Spirit Place")}</div>
+                  <p style={{fontSize:10,fontWeight:700,color:DARK,lineHeight:1.55,margin:0,...sans}}>{L==="zh"?p.zsp:p.esp}</p>
                 </div>
               </div>
 
-              <div style={{background:GREEN,borderRadius:14,border:BORDER_SM,padding:"10px 12px"}}>
-                <div style={{fontSize:8,fontWeight:900,color:"#fff",letterSpacing:"0.1em",...mono,marginBottom:4}}>{T("副人格倾向","SECONDARY TYPE")}:</div>
-                <p style={{fontSize:12,color:"#fff",margin:0,fontWeight:700,...sans}}>{sec.emoji} {L==="zh"?sec.zn:sec.en} · {sim}%</p>
+              {/* Right column: avatar + tagline */}
+              <div style={{width:126,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+                <img src={ARCHETYPE_IMG[p.id]} alt={p.en} style={{width:"100%",height:190,objectFit:"contain",objectPosition:"bottom",display:"block"}}/>
+                <p style={{fontSize:10,fontStyle:"italic",fontWeight:700,color:DARK,textAlign:"center",lineHeight:1.5,...sans,margin:0}}>
+                  &ldquo;{L==="zh"?p.ztl:p.etl}&rdquo;
+                </p>
               </div>
-
-              <div style={{background:BLUE,borderRadius:14,border:BORDER_SM,padding:"10px 12px"}}>
-                <div style={{fontSize:8,fontWeight:900,letterSpacing:"0.1em",...mono,marginBottom:4}}>{T("灵魂地标","SPIRIT PLACE")}:</div>
-                <p style={{fontSize:12,color:DARK,margin:0,fontWeight:700,...sans}}>{L==="zh"?p.zsp:p.esp}</p>
-              </div>
-            </div>
-
-            {/* Barcode */}
-            <div style={{margin:"12px 14px 0",borderTop:BORDER_SM,padding:"10px 0 0"}}>
-              <Barcode seed={p.id}/>
-              <p style={{fontSize:8,color:"rgba(0,0,0,0.3)",...mono,letterSpacing:"0.06em",margin:"4px 0 0"}}>
-                {p.id.toUpperCase()} · CORNELL QUIZ
-              </p>
-            </div>
-
-            {/* Card footer */}
-            <div style={{background:"#111",padding:"10px 18px",borderTop:BORDER,marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{color:"rgba(255,255,255,0.5)",fontSize:8,fontWeight:700,...mono}}>MADE BY CORNELL CSSA</div>
-              <div style={{color:"rgba(255,255,255,0.8)",fontSize:8,fontWeight:900,...mono}}>CORNELL UNIVERSITY</div>
             </div>
           </div>
+          </div>{/* end centering wrapper */}
         </div>
 
         {/* Action buttons */}

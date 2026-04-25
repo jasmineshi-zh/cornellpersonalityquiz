@@ -403,7 +403,7 @@ export default function CornellQuiz() {
   };
 
   const captureCard = () => html2canvas(frontRef.current, {
-    scale:3, backgroundColor:null, useCORS:true, logging:false,
+    scale:3, backgroundColor:"#FFF8E7", useCORS:true, logging:false,
   });
 
   const saveCard = async () => {
@@ -693,8 +693,8 @@ export default function CornellQuiz() {
           <div style={{margin:"auto 0",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
 
             <div ref={frontRef} style={{display:"flex",flexDirection:"column",alignItems:"center",background:WARM,padding:"0 0 12px",borderRadius:24}}>
-            <div style={{width:44,height:80,background:"linear-gradient(to bottom,#B31B1B,#7a1010)",border:BORDER,borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"4px 4px 0 0 #000",flexShrink:0}}>
-              <span style={{color:"rgba(255,255,255,0.6)",fontSize:7,fontWeight:700,...mono,letterSpacing:"0.08em",writingMode:"vertical-rl"}}>MADE BY CSSA</span>
+            <div style={{width:90,height:44,background:"linear-gradient(to bottom,#B31B1B,#7a1010)",border:BORDER,borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"4px 4px 0 0 #000",flexShrink:0}}>
+              <span style={{color:"rgba(255,255,255,0.7)",fontSize:8,fontWeight:700,...mono,letterSpacing:"0.08em"}}>MADE BY CSSA</span>
             </div>
             <div style={{width:28,height:14,background:"#fff",border:BORDER,borderTop:"none",borderRadius:"0 0 9999px 9999px",flexShrink:0}}/>
 

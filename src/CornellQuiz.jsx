@@ -613,7 +613,7 @@ export default function CornellQuiz() {
           </div>
         </div>
 
-        <div key={qKey} style={{flex:1,display:"flex",flexDirection:"column",animation:qAnim}}>
+        <div key={qKey} style={{flex:1,display:"flex",flexDirection:"column",animation:qAnim,position:"relative",zIndex:1}}>
           <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{margin:"auto 0",padding:"18px 20px 10px",display:"flex",flexDirection:"column",gap:10}}>
               <div style={{background:"#fff",borderRadius:24,padding:"18px",border:BORDER,boxShadow:SHADOW}}>
@@ -720,7 +720,7 @@ export default function CornellQuiz() {
           </button>
         </div>
 
-        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 20px 8px"}}>
+        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 20px 8px",position:"relative",zIndex:1}}>
           <div style={{margin:"auto 0",display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
 
             <div ref={frontRef} style={{display:"flex",flexDirection:"column",alignItems:"center",background:WARM,padding:"0 0 12px",borderRadius:24}}>
@@ -781,7 +781,7 @@ export default function CornellQuiz() {
           </div>
         </div>
 
-        <div style={{borderTop:BORDER,background:"#fff",padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))"}}>
+        <div style={{borderTop:BORDER,background:"#fff",padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))",position:"relative",zIndex:1}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1.3fr 1fr",gap:8}}>
             <button className="nbtn" onClick={restart} style={{padding:"13px 0",background:"#fff",border:BORDER,borderRadius:9999,fontSize:13,...sans,fontWeight:700,color:DARK,cursor:"pointer",boxShadow:SHADOW}}>
               {T("再测一次","Retake")}

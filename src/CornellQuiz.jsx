@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const RED    = "#B31B1B";
 const WARM   = "#FFF8E7";
@@ -287,6 +288,41 @@ const LOADING_MSGS = {
   en:["Analyzing your Cornell spirit","Cross-checking 161 years of alumni…","Measuring your Slope energy…","Cross-referencing Arts Quad vibes…"],
 };
 
+function ClockTower({ color = "#B31B1B", opacity = 0.07 }) {
+  // Each tile: scale 0.44 → tower ≈ 53×150px; cell 180×230px; rotated -25° for diagonal
+  const S = 0.44, CW = 180, CH = 230;
+  const tx = (CW - 120 * S) / 2, ty = (CH - 340 * S) / 2;
+  return (
+    <svg
+      aria-hidden="true"
+      style={{
+        position:"absolute", inset:0, width:"100%", height:"100%",
+        opacity, pointerEvents:"none", zIndex:0, userSelect:"none",
+      }}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <pattern id="ct-pat" x="0" y="0" width={CW} height={CH} patternUnits="userSpaceOnUse" patternTransform="rotate(-25)">
+          <g transform={`rotate(25,${CW/2},${CH/2}) translate(${tx},${ty}) scale(${S})`} fill={color}>
+            <circle cx="60" cy="6" r="5" />
+            <polygon points="60,4 92,74 28,74" />
+            <rect x="21" y="72" width="78" height="12" />
+            <path fillRule="evenodd" d="M29,84 L91,84 L91,148 L29,148 Z M40,116 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+            <circle cx="60" cy="116" r="20" fill="none" stroke={color} strokeWidth="3" />
+            <line x1="60" y1="116" x2="60" y2="101" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="60" y1="116" x2="73" y2="116" stroke={color} strokeWidth="2" strokeLinecap="round" />
+            <rect x="21" y="146" width="78" height="10" />
+            <rect x="28" y="156" width="64" height="128" />
+            <rect x="12" y="284" width="96" height="20" />
+            <rect x="0" y="304" width="120" height="36" />
+          </g>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#ct-pat)" />
+    </svg>
+  );
+}
+
 export default function CornellQuiz() {
   const [lang, setLang]       = useState("zh");
   const [step, setStep]       = useState("cover");
@@ -484,9 +520,7 @@ export default function CornellQuiz() {
       animation:pageAnim, WebkitFontSmoothing:"antialiased",
     }}>
       <style>{STYLES}</style>
-      <div style={{position:"absolute",top:40,left:40,width:64,height:64,background:YELLOW,borderRadius:"50%",opacity:0.55,animation:"npulse 2s ease-in-out infinite",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",top:130,right:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.35,animation:"npulse 2.4s ease-in-out infinite 0.4s",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",bottom:150,left:20,width:80,height:80,background:PINK,borderRadius:"50%",opacity:0.45,animation:"npulse 1.8s ease-in-out infinite 0.8s",pointerEvents:"none"}}/>
+      <ClockTower color="#ffffff" opacity={0.10} />
 
       <div style={{width:"100%",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",zIndex:1,gap:0}}>
         <div style={{position:"relative",marginBottom:16}}>
@@ -546,6 +580,7 @@ export default function CornellQuiz() {
       >{T("Let's go! 开始 →","Let's go! 开始 →")}</button>
 
       <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",...mono,letterSpacing:"0.1em",marginTop:14,zIndex:1,fontWeight:700}}>MADE BY CORNELL CSSA · 1865—2026</div>
+      <SpeedInsights />
     </div>
   );
 
@@ -559,8 +594,7 @@ export default function CornellQuiz() {
         onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
       >
         <style>{STYLES}</style>
-        <div style={{position:"absolute",top:80,right:36,width:64,height:64,background:PINK,borderRadius:"50%",opacity:0.28,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:120,left:28,width:80,height:80,background:GREEN,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
+        <ClockTower color={RED} opacity={0.07} />
 
         <div style={{background:"#fff",padding:"14px 20px 12px",borderBottom:BORDER,position:"relative",flexShrink:0}}>
           <LangBtn onDark={false}/>
@@ -613,7 +647,7 @@ export default function CornellQuiz() {
             </div>
           </div>
 
-          <div style={{padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))",flexShrink:0,display:"flex",gap:10}}>
+          <div style={{padding:"12px 20px",paddingBottom:"max(12px,env(safe-area-inset-bottom))",flexShrink:0,display:"flex",gap:10,background:WARM,position:"relative",zIndex:1}}>
             {qi > 0 && (
               <button className="nbtn" onClick={handleBack} style={{
                 padding:"15px 16px",flexShrink:0,
@@ -627,8 +661,8 @@ export default function CornellQuiz() {
               onClick={handleNext} disabled={sel===null}
               style={{
                 flex:1,padding:"15px",
-                background:sel!==null?RED:"rgba(0,0,0,0.12)",
-                color:sel!==null?"#fff":"rgba(0,0,0,0.3)",
+                background:sel!==null?RED:"#c8bfaf",
+                color:sel!==null?"#fff":"#8a7f70",
                 border:BORDER,borderRadius:9999,
                 boxShadow:sel!==null?SHADOW:"none",
                 fontSize:16,fontWeight:900,...sans,
@@ -646,9 +680,7 @@ export default function CornellQuiz() {
   if (step === "loading") return (
     <div style={{minHeight:"100dvh",background:RED,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,position:"relative",overflow:"hidden",animation:"pageFade 0.35s ease both"}}>
       <style>{STYLES}</style>
-      <div style={{position:"absolute",top:80,left:40,width:96,height:96,background:YELLOW,borderRadius:"50%",opacity:0.5,animation:"npulse 1.6s ease-in-out infinite",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",bottom:160,right:48,width:128,height:128,background:GREEN,borderRadius:"50%",opacity:0.35,animation:"npulse 2s ease-in-out infinite 0.5s",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",top:"45%",left:28,width:64,height:64,background:PINK,borderRadius:"50%",opacity:0.55,animation:"npulse 1.3s ease-in-out infinite 0.3s",pointerEvents:"none"}}/>
+      <ClockTower color="#ffffff" opacity={0.10} />
 
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
         <div style={{position:"relative",marginBottom:22}}>
@@ -680,8 +712,7 @@ export default function CornellQuiz() {
     return (
       <div style={{minHeight:"100dvh",background:WARM,display:"flex",flexDirection:"column",WebkitFontSmoothing:"antialiased",animation:pageAnim,position:"relative",overflow:"hidden"}}>
         <style>{STYLES}</style>
-        <div style={{position:"absolute",top:40,right:36,width:80,height:80,background:YELLOW,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:120,left:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.2,pointerEvents:"none"}}/>
+        <ClockTower color={RED} opacity={0.07} />
 
         <div style={{position:"absolute",top:14,right:16,zIndex:20}}>
           <button className="nbtn" onClick={() => setLang(l=>l==="zh"?"en":"zh")} style={{background:"#fff",border:BORDER_SM,color:DARK,borderRadius:9999,padding:"4px 12px",fontSize:11,...mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:700,boxShadow:SHADOW_SM}}>
@@ -829,8 +860,7 @@ export default function CornellQuiz() {
     return (
       <div style={{minHeight:"100dvh",background:WARM,display:"flex",flexDirection:"column",WebkitFontSmoothing:"antialiased",animation:pageAnim,position:"relative",overflow:"hidden"}}>
         <style>{STYLES}</style>
-        <div style={{position:"absolute",top:40,right:36,width:80,height:80,background:YELLOW,borderRadius:"50%",opacity:0.22,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:140,left:28,width:96,height:96,background:GREEN,borderRadius:"50%",opacity:0.2,pointerEvents:"none"}}/>
+        <ClockTower color={RED} opacity={0.07} />
 
         {/* Header */}
         <div style={{background:RED,padding:"14px 20px",borderBottom:BORDER,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>

@@ -29,14 +29,14 @@ const OPT_STYLE = [
 ];
 
 const ARCHETYPE_BG = {
-  mcgraw: YELLOW, olin: BLUE, libe: GREEN,
+  mcgraw: YELLOW, cocktail: BLUE, libe: GREEN,
   slope: GREEN, beebe: BLUE, willard: PINK,
   ithaca: YELLOW, sage: PINK,
 };
 
 const ARCHETYPE_IMG = {
   mcgraw:  "/archetypes/McGraw.png",
-  olin:    "/archetypes/Olin.png",
+  cocktail: "/archetypes/Cocktail.png",
   libe:    "/archetypes/LibeCafeSocial.png",
   slope:   "/archetypes/LibeSlopePhilo.png",
   beebe:   "/archetypes/BeebeLakeRunner.png",
@@ -74,9 +74,9 @@ const QS = [
   {zh:"Cornell这周末有个活动，你觉得你更可能是：",
    en:"There's a Cornell event this weekend. Which sounds most like you?",
    opts:[
-    {zh:"活动组织/发起人",en:"I'm the organizer",d:{S:8,T:8,D:10,R:0,A:0,C:8}},
+    {zh:"大概率是我组织/发起的活动，当然要在场",en:"I'm probably the organizer, so I'll definitely be there",d:{S:8,T:8,D:10,R:0,A:0,C:8}},
     {zh:"一定到场社交，多好的认识新朋友的场合啊！",en:"Definitely going, it's the perfect chance to meet new people!",d:{S:15,T:0,D:0,R:-5,A:0,C:5}},
-    {zh:"犹豫一下去了，但全程想早点走",en:"Went after deliberation, but thinking about leaving the whole time",d:{S:-8,T:0,D:-5,R:8,A:0,C:-5}},
+    {zh:"要么不去，要么犹豫一下去了，但全程想早点走",en:"Went after deliberation, but thinking about leaving the whole time",d:{S:-8,T:0,D:-5,R:8,A:0,C:-5}},
     {zh:"一边参与，一边观察人类行为",en:"I'll be there quietly watching how humans behave in the corner",d:{S:-5,T:0,D:0,R:15,A:0,C:0}},
   ]},
   {zh:"你对coffee chat的真实想法是？",
@@ -122,7 +122,7 @@ const QS = [
   {zh:"这是你在康奈尔的最后一学期，你最想做的一件事是？",
    en:"It's the last semester of your time at Cornell. What's the one thing you want to do the most?",
    opts:[
-    {zh:"把没去过的地方都走一遍，把故事都留住",en:"Walk every corner I haven't been, hold onto every story",d:{S:0,T:0,D:0,R:8,A:15,C:-8}},
+    {zh:"完成一件能代表’我在这里过‘的东西",en:"Do/make something that let's people know that 'I've been here'",d:{S:2,T:6,D:10,R:3,A:2,C:7}},
     {zh:"把简历和portfolio打磨到最好",en:"Polish my resume and portfolio to perfection",d:{S:0,T:8,D:12,R:-5,A:-5,C:15}},
     {zh:"认识更多人，维护好要带走的关系网",en:"Meet more people and keep the network I'm taking with me beyond Cornell",d:{S:12,T:0,D:5,R:-5,A:0,C:10}},
     {zh:"做一些一直想做但是没做的事",en:"I'll finally start doing the thing I've been meaning to do",d:{S:-8,T:-5,D:0,R:15,A:8,C:-8}},
@@ -130,18 +130,50 @@ const QS = [
   {zh:"早上七点半，你的状态是？",
    en:"7:30am. Where are you at?",
    opts:[
-    {zh:"已经跑完步回来，在吃早饭",en:"Back from a run or a workout, eating breakfast",d:{S:-8,T:15,D:10,R:0,A:0,C:5}},
-    {zh:"刚睁眼，先看昨晚有没有消息没回",en:"Just woke up, checking missed messages first",d:{S:12,T:-5,D:0,R:0,A:0,C:0}},
+    {zh:"已经跑完步回来，在吃早饭",en:"Back from a run or a workout, already eating breakfast",d:{S:-8,T:15,D:10,R:0,A:0,C:5}},
+    {zh:"刚睁眼，先看昨晚有没有消息没回",en:"Just woke up, checking messages on my phone first",d:{S:12,T:-5,D:0,R:0,A:0,C:0}},
     {zh:"还在睡，七点半根本不存在",en:"Still asleep. 7:30am doesn't exist.",d:{S:-5,T:-12,D:-8,R:5,A:0,C:-5}},
-    {zh:"起来了，发呆，慢慢看窗外",en:"Up, but just staring out the window",d:{S:-8,T:-8,D:-5,R:12,A:8,C:-5}},
+    {zh:"起来了，发呆，慢慢看窗外",en:"Up, but just staring out the window or daydreaming",d:{S:-8,T:-8,D:-5,R:12,A:8,C:-5}},
   ]},
   {zh:"毕业几年后，你有机会回到Cornell一天，你会？",
    en:"It's been a couple years since graduation and you have the chance to revisit Cornell for a day. You will:",
    opts:[
     {zh:"回到Ithaca，重走一遍当年每天走的路",en:"Return to Ithaca and revisit all the familiar places",d:{S:-5,T:0,D:0,R:8,A:15,C:-8}},
     {zh:"参加校友活动，认识现在的在校生和其他校友",en:"Attend alumni events, meet current students and fellow grads",d:{S:8,T:5,D:8,R:-5,A:0,C:15}},
-    {zh:"找老朋友，约在熟悉的地方坐一下午",en:"Meet up with old friends in the 'old' spot on campus",d:{S:12,T:-5,D:0,R:0,A:8,C:-5}},
+    {zh:"约老朋友一起回来，在熟悉的地方坐一下午",en:"Meet up with old friends in the 'old' spot on campus",d:{S:12,T:-5,D:0,R:0,A:8,C:-5}},
     {zh:"不会特地回Cornell，但会约当年的朋友们在不同地方小聚",en:"I don't think I'll return to Ithaca, but I might meet up with Cornell friends somewhere else",d:{S:10,T:5,D:8,R:-8,A:-12,C:10}},
+  ]},
+  {zh:"课间有两个小时空档，你会去哪里？",
+   en:"You have a two free hours between classes. Where would you go?",
+   opts:[
+    {zh:"在自己熟悉的教学楼里找一个没人的教室或者角落",en:"I'll find an empty classroom or corner in a familiar campus building",d:{S:-5,T:-5,D:-5,R:8,A:15,C:-8}},
+    {zh:"找个有人的地方坐，图书馆、café都行，有动静才专注",en:"I'll go somewhere where there's people around — the background noise helps",d:{S:10,T:0,D:5,R:-8,A:0,C:0}},
+    {zh:"去没什么人的地方发呆，或者回宿舍躺着",en:"I'll go somewhere without people--like back in bed in my own dorm",d:{S:-12,T:-8,D:-8,R:15,A:8,C:-8}},
+    {zh:"已经在去下一个meeting的路上了",en:"Already walking to the next meeting",d:{S:5,T:12,D:10,R:-8,A:0,C:8}},
+  ]},
+  {zh:"做完一件事之后，什么让你觉得最有满足感？",
+   en:"Which of the following gives you the most satisfaction after finishing something?",
+   opts:[
+    {zh:"比deadline早交，而且做得比要求好",en:"Submitting early and going beyond what was asked",d:{S:-5,T:10,D:15,R:-5,A:0,C:8}},
+    {zh:"因为这件事认识了一个很有意思的新朋友",en:"Meeting someone genuinely interesting because of it",d:{S:15,T:0,D:0,R:-5,A:5,C:8}},
+    {zh:"终于做完了，再也不用想这件事了",en:"I'm FINALLY done with it and won't have to think about it anymore",d:{S:-8,T:-5,D:0,R:15,A:5,C:-8}},
+    {zh:"回头看了看自己做的东西，想了想下次可以怎么做得更好",en:"Looking back at what I did and thinking about how to do it even better next time",d:{S:-5,T:8,D:10,R:8,A:0,C:8}},
+  ]},
+  {zh:"压力很大的时候，你的本能反应是？",
+   en:"When you're under serious pressure, your instinct is to:",
+   opts:[
+    {zh:"找人说话，吐槽完就好多了",en:"Find someone to vent to — talking it out always helps",d:{S:15,T:-5,D:-5,R:-10,A:0,C:0}},
+    {zh:"一个人待着，不想被打扰",en:"I need some alone time without anyone around",d:{S:-12,T:0,D:0,R:12,A:0,C:-5}},
+    {zh:"立刻开始做事，动起来就不焦虑了",en:"Start doing something immediately — action kills anxiety",d:{S:-5,T:8,D:15,R:-8,A:0,C:5}},
+    {zh:"脑子里想很多，但先躺一会儿",en:"A lot of thoughts floating around, but I'll lie down for a bit first",d:{S:-5,T:-10,D:-10,R:10,A:5,C:-8}},
+  ]},
+  {zh:"入学第一周，你脑子里想的是什么？",
+   en:"First week of Cornell. What's going through your head?",
+   opts:[
+    {zh:"这里好美，我要把每个地方都走一遍",en:"This place is beautiful — I want to walk every inch of it",d:{S:0,T:5,D:5,R:5,A:15,C:-8}},
+    {zh:"我要认识尽可能多的人",en:"I want to meet as many people as possible",d:{S:15,T:5,D:8,R:-8,A:5,C:8}},
+    {zh:"我要把这里的资源全部用起来",en:"I need to take advantage of every resource this place has",d:{S:5,T:10,D:12,R:-5,A:-5,C:15}},
+    {zh:"东摸摸西摸摸，什么都想了解一下",en:"I'll try a little of everything",d:{S:8,T:-8,D:0,R:5,A:10,C:-5}},
   ]},
 ];
 
@@ -158,18 +190,18 @@ const AS = [
    zbl:"有时爱这个地方多过爱自己的计划",ebl:"Sometimes loves the peaceful campus more than your plan",
    zco:"Ithaca Fall沉思者",eco:"Ithaca Fall Daydreamer",
    zsp:"Arts Quad，下雪的早上",esp:"Arts Quad on a snowy morning"},
-  {id:"olin",emoji:"📚",
-   zn:"Olin凌晨三点常客",en:"Olin 3AM Regular",
+  {id:"cocktail",emoji:"📚",
+   zn:"Cocktail凌晨三点常客",en:"Cocktail 3AM Regular",
    zt:"卷王型",et:"Crunch Mode",
    coords:{S:15,T:30,D:95,R:50,A:40,C:55},
    ztl:"DDL是最好的deadline，因为它真的是最后一条线",
    etl:"The deadline is the best deadline — because it really is the last one",
-   zd:"你不是拖延，你是在等状态。问题是状态总在凌晨两点才来，但来了之后锐不可当。",
-   ed:"You're not procrastinating — you're waiting for flow state. It always arrives at 2am. But when it does, nothing can stop you.",
+   zd:"你不是拖延，你是在等状态。问题是状态总在深夜才来，但来了之后锐不可当。",
+   ed:"You're not procrastinating — you're waiting for flow state. It always arrives after midnight. But when it does, nothing can stop you.",
    zpw:"8小时内完成别人需要两周的事",epw:"Does in 8 hrs what others need two weeks for",
    zbl:"总觉得下次会提前开始",ebl:"'I'll start earlier next time'",
    zco:"Libe Café社交达人",eco:"Libe Café Social Butterfly",
-   zsp:"Olin三楼，窗边那个位置",esp:"The window seat at the stacks"},
+   zsp:"Cocktail窗边那个位置",esp:"The window seat at Cocktail Lounge"},
   {id:"libe",emoji:"☕",
    zn:"Libe Café社交达人",en:"Libe Café Social Butterfly",
    zt:"社牛型",et:"Social Architect",
@@ -334,6 +366,7 @@ export default function CornellQuiz() {
   const [lmsg, setLmsg]       = useState(0);
   const [yearTick, setYearTick] = useState(1865);
   const [shuffledOpts, setShuffledOpts] = useState(null);
+  const [shuffledQs,   setShuffledQs]   = useState(null);
   const [saving, setSaving]   = useState(false);
   const [sharing, setSharing] = useState(false);
   const [navDir, setNavDir]   = useState("forward");
@@ -401,21 +434,30 @@ export default function CornellQuiz() {
 
   const startQuiz = () => {
     if (!name.trim()) return;
-    const shuffled = QS.map(q => {
-      const idx = q.opts.map((_,i) => i);
+    const firstIdx = QS.findIndex(q => q.zh.includes("入学第一周"));
+    const lastIdx  = QS.findIndex(q => q.zh.includes("这是你在康奈尔的最后一学期"));
+    const middle = QS.map((_,i) => i).filter(i => i !== firstIdx && i !== lastIdx);
+    for (let i = middle.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [middle[i], middle[j]] = [middle[j], middle[i]];
+    }
+    const qOrder = [firstIdx, ...middle, lastIdx];
+    setShuffledQs(qOrder);
+    const opts = qOrder.map(() => {
+      const idx = [0,1,2,3];
       for (let i = idx.length-1; i > 0; i--) {
         const j = Math.floor(Math.random()*(i+1));
         [idx[i],idx[j]] = [idx[j],idx[i]];
       }
       return idx;
     });
-    setShuffledOpts(shuffled);
+    setShuffledOpts(opts);
     setNavDir("forward"); setStep("quiz");
   };
 
   const handleNext = () => {
     if (sel === null) return;
-    const na = [...answers, {qi, oi:sel}];
+    const na = [...answers, {qi: shuffledQs[qi], oi:sel}];
     setAnswers(na);
     if (qi < QS.length-1) {
       setQDir("forward"); setQKey(k=>k+1); setQi(qi+1); setSel(null);
@@ -434,7 +476,7 @@ export default function CornellQuiz() {
 
   const restart = () => {
     setQi(0); setAnswers([]); setSel(null); setResult(null); setName("");
-    setShuffledOpts(null);
+    setShuffledOpts(null); setShuffledQs(null);
     setNavDir("back"); setStep("cover");
   };
 
@@ -538,7 +580,7 @@ export default function CornellQuiz() {
 
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
           <div style={{height:2,background:"rgba(255,255,255,0.35)",width:30}}/>
-          <p style={{color:YELLOW,fontSize:10,letterSpacing:"0.22em",...mono,margin:0,fontWeight:900}}>CELEBRATING 161 YEARS</p>
+          <p style={{color:YELLOW,fontSize:10,letterSpacing:"0.22em",...mono,margin:0,fontWeight:900}}>CELEBRATING 161 YEARS OF CORNELL</p>
           <div style={{height:2,background:"rgba(255,255,255,0.35)",width:30}}/>
         </div>
         <h1 style={{color:YELLOW,fontSize:30,fontWeight:900,margin:"0 0 10px",lineHeight:1.15,...sans,textAlign:"center"}}>
@@ -579,14 +621,14 @@ export default function CornellQuiz() {
         }}
       >{T("Let's go! 开始 →","Let's go! 开始 →")}</button>
 
-      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",...mono,letterSpacing:"0.1em",marginTop:14,zIndex:1,fontWeight:700}}>MADE BY CORNELL CSSA · 1865—2026</div>
+      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",...mono,letterSpacing:"0.1em",marginTop:14,zIndex:1,fontWeight:700}}>MADE BY CORNELL CSSA</div>
       <SpeedInsights />
     </div>
   );
 
   // ── QUIZ ───────────────────────────────────────────────────────────────
   if (step === "quiz") {
-    const q = QS[qi];
+    const q = QS[shuffledQs?.[qi] ?? qi];
     const pct = (qi/QS.length)*100;
     return (
       <div

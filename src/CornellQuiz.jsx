@@ -67,7 +67,7 @@ const QS = [
    en:"It's finals weeks and you have three upcoming deadlines. What's your first reaction?",
    opts:[
     {zh:"打开计划表，精确排到小时",en:"Make an hourly-study plan",d:{S:0,T:12,D:8,R:0,A:0,C:5}},
-    {zh:"拉朋友去Olin camp out，互相监督顺便吐槽",en:"Camp out with friends in Olin",d:{S:12,T:-5,D:8,R:0,A:0,C:0}},
+    {zh:"拉朋友去Olin Library，互相监督顺便吐槽",en:"Camp out with friends in Olin",d:{S:12,T:-5,D:8,R:0,A:0,C:0}},
     {zh:"先睡一觉，醒来再说",en:"I'll sleep first, and deal with it later",d:{S:0,T:-10,D:-12,R:5,A:0,C:-5}},
     {zh:"突然开始思考：我到底为什么要选这个专业",en:"Starting thinking about why I picked this major",d:{S:-5,T:-5,D:-8,R:15,A:5,C:-5}},
   ]},
@@ -119,7 +119,7 @@ const QS = [
     {zh:"杂七杂八的、有意思的帖子",en:"Anything that seems interesting - to me",d:{S:-8,T:0,D:-5,R:12,A:5,C:-10}},
     {zh:"「我要开始认真生活了」那种内容：健身、作息、自律vlog，看完很想重启人生",en:"'Time to get my life together' content — fitness routines, vlogs, things that make you want to restart",d:{S:-5,T:8,D:10,R:0,A:0,C:5}},
   ]},
-  {zh:"这是你在康奈尔的最后一学期，你最想做的一件事是？",
+  {zh:"假如这是你在康奈尔的最后一学期，你最想做的一件事是？",
    en:"It's the last semester of your time at Cornell. What's the one thing you want to do the most?",
    opts:[
     {zh:"完成一件能代表’我在这里过‘的东西",en:"Do/make something that let's people know that 'I've been here'",d:{S:2,T:6,D:10,R:3,A:2,C:7}},
@@ -157,7 +157,7 @@ const QS = [
     {zh:"比deadline早交，而且做得比要求好",en:"Submitting early and going beyond what was asked",d:{S:-5,T:10,D:15,R:-5,A:0,C:8}},
     {zh:"因为这件事认识了一个很有意思的新朋友",en:"Meeting someone genuinely interesting because of it",d:{S:15,T:0,D:0,R:-5,A:5,C:8}},
     {zh:"终于做完了，再也不用想这件事了",en:"I'm FINALLY done with it and won't have to think about it anymore",d:{S:-8,T:-5,D:0,R:15,A:5,C:-8}},
-    {zh:"回头看了看自己做的东西，想了想下次可以怎么做得更好",en:"Looking back at what I did and thinking about how to do it even better next time",d:{S:-5,T:8,D:10,R:8,A:0,C:8}},
+    {zh:"做完之后，感觉不只是‘完成了一件事’，而是让我整个人成长了",en:"Feeling like I didn't just finish something but it had made me grow",d:{S:0,T:0,D:2,R:15,A:5,C:-5}},
   ]},
   {zh:"压力很大的时候，你的本能反应是？",
    en:"When you're under serious pressure, your instinct is to:",
